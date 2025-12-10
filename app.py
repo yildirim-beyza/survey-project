@@ -147,6 +147,57 @@ def delete_question(survey_id, question_id):
     return redirect(url_for("manage_questions", survey_id=survey_id))
 
 
+
+@app.route("/surveys/<int:survey_id>/delete", methods=["POST"])
+def delete_survey(survey_id):
+    conn = get_db()
+    with conn.cursor() as cur:
+        # 1) Bu ankete ait tüm soru id'lerini al
+        cur.execute("SELECT id FROM questions WHERE survey_id = %s", (survey_id,))
+        rows = cur.fetchall()
+        question_ids = [row["id"] for row in rows]
+
+        if question_ids:
+            # IN (%s, %s, ...) kısmını dinamik oluştur
+            placeholders = ",".join(["%s"] * len(question_ids))
+
+            # 2) Bu sorulara ait cevapları sil
+            cur.execute(
+                f"DELETE FROM answers WHERE question_id IN ({placeholders})",
+                question_ids,
+            )
+
+            # 3) Bu sorulara ait şıkları sil
+            cur.execute(
+                f"DELETE FROM options WHERE question_id IN ({placeholders})",
+                question_ids,
+            )
+
+            # 4) Soruları sil
+            cur.execute(
+                "DELETE FROM questions WHERE survey_id = %s",
+                (survey_id,),
+            )
+
+        # 5) Bu ankete ait response kayıtlarını sil
+        cur.execute(
+            "DELETE FROM responses WHERE survey_id = %s",
+            (survey_id,),
+        )
+
+        # 6) Son olarak anketin kendisini sil
+        cur.execute(
+            "DELETE FROM surveys WHERE id = %s",
+            (survey_id,),
+        )
+
+        conn.commit()
+
+    conn.close()
+    return redirect(url_for("list_surveys"))
+
+
+
 # ---- ANKETİ DOLDUR ----
 @app.route("/surveys/<int:survey_id>/take", methods=["GET", "POST"])
 def take_survey(survey_id):

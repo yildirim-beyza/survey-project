@@ -33,13 +33,32 @@
                     </div>
                     <div class="text-right">
                         <a href="{{ url_for('manage_questions', survey_id=s.id) }}"
-                        class="btn btn-sm btn-secondary rounded-pill mb-1">Soruları Yönet</a>
+                           class="btn btn-sm btn-secondary rounded-pill mb-1">
+                            Soruları Yönet
+                        </a>
                         <a href="{{ url_for('take_survey', survey_id=s.id) }}"
-                        class="btn btn-sm btn-success rounded-pill mb-1 ml-1">Anketi Doldur</a>
+                           class="btn btn-sm btn-success rounded-pill mb-1 ml-1">
+                            Anketi Doldur
+                        </a>
                         <a href="{{ url_for('show_results', survey_id=s.id) }}"
-                        class="btn btn-sm btn-info rounded-pill mb-1 ml-1">Sonuçlar</a>
+                           class="btn btn-sm btn-info rounded-pill mb-1 ml-1">
+                            Sonuçlar
+                        </a>
                         <a href="{{ url_for('edit_survey', survey_id=s.id) }}"
-                        class="btn btn-sm btn-outline-dark rounded-pill mb-1 ml-1">Düzenle</a>
+                           class="btn btn-sm btn-outline-dark rounded-pill mb-1 ml-1">
+                            Düzenle
+                        </a>
+
+                        <!-- ANKETİ SİL BUTONU -->
+                        <form action="{{ url_for('delete_survey', survey_id=s.id) }}"
+                              method="post"
+                              style="display:inline;"
+                              onsubmit="return confirm('Bu anketi silmek istediğine emin misin?');">
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger rounded-pill mb-1 ml-1">
+                                Sil
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
