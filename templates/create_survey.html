@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Yeni Anket Oluştur{% endblock %}
+
+{% block content %}
+<div class="main-card">
+    <h2 class="page-title mb-1">Yeni Anket Oluştur</h2>
+    <p class="page-subtitle mb-4">
+        Başlık ve açıklamayı girerek yeni bir anket tanımlayın.
+    </p>
+
+    <form method="post">
+        <div class="form-group">
+            <label>Başlık</label>
+            <input type="text" name="title" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <textarea name="description" class="form-control" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary rounded-pill">Kaydet</button>
+        <a href="{{ url_for('list_surveys') }}" class="btn btn-light rounded-pill">İptal</a>
+    </form>
+</div>
+{% endblock %}

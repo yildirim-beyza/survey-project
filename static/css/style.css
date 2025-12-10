@@ -1,0 +1,335 @@
+/* Genel görünüm */
+body {
+    background: #f3f4f6;
+    font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Üst navbar */
+.navbar-custom {
+    background: linear-gradient(90deg, #111827, #1f2937);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+}
+
+/* Ana içerik kartı */
+.main-card {
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    padding: 2.5rem 2.8rem;
+    margin-top: 2.5rem;
+    margin-bottom: 3.5rem;
+}
+
+/* Başlıklar */
+.page-title {
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.page-subtitle {
+    color: #6b7280;
+}
+
+/* Butonlar */
+.btn-primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.35);
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+.btn-success {
+    background: #16a34a;
+    border-color: #16a34a;
+}
+
+.btn-success:hover {
+    background: #15803d;
+    border-color: #15803d;
+}
+
+.btn-info {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+}
+
+.btn-info:hover {
+    background: #0284c7;
+    border-color: #0284c7;
+}
+
+/* Tablo görünümü */
+.table thead th {
+    background-color: #f9fafb;
+    border-bottom-width: 0;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.table tbody tr:hover {
+    background-color: #f3f4ff;
+}
+
+/* Form alanları */
+.form-control, .form-select, textarea.form-control {
+    border-radius: 10px;
+    border-color: #e5e7eb;
+}
+
+.form-control:focus, .form-select:focus, textarea.form-control:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 0.1rem rgba(37, 99, 235, 0.25);
+}
+
+/* Anket kartları */
+.card {
+    border-radius: 14px;
+    border: none;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+}
+
+/* Progress bar (sonuç grafikleri) */
+.progress {
+    height: 10px;
+    border-radius: 999px;
+    background-color: #e5e7eb;
+}
+
+.progress-bar {
+    border-radius: 999px;
+}
+
+/* Küçük yardımcı sınıflar */
+.badge-pill {
+    border-radius: 999px;
+}
+
+.text-muted-sm {
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+
+
+/* Pie chart boyutu */
+.pie-wrapper {
+    min-height: 220px;
+}
+
+.pie-holder {
+    display: flex;
+    align-items: center;
+}
+
+/* Pasta grafiğin kendisi */
+.pie-canvas {
+    max-width: 230px;   /* biraz büyüttük */
+    max-height: 230px;
+    width: 100%;
+    height: auto;
+}
+
+/* Sağdaki legend */
+.pie-legend {
+    list-style: none;
+    margin: 0 0 0 16px;   /* soldan boşluk */
+    padding: 0;
+    font-size: 0.9rem;
+}
+
+.pie-legend li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+/* Renk kutucukları */
+.pie-legend .color-box {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-right: 8px;
+}
+
+/* Legend renkleri – Chart.js palette ile uyumlu */
+.pie-legend li:nth-child(1) .color-box { background-color: #4f46e5; }
+.pie-legend li:nth-child(2) .color-box { background-color: #06b6d4; }
+.pie-legend li:nth-child(3) .color-box { background-color: #10b981; }
+.pie-legend li:nth-child(4) .color-box { background-color: #fbbf24; }
+.pie-legend li:nth-child(5) .color-box { background-color: #ef4444; }
+.pie-legend li:nth-child(6) .color-box { background-color: #8b5cf6; }
+
+
+
+.card-result,
+.card-survey,
+.card-question {
+    border-radius: 18px;
+    border: none;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-result:hover,
+.card-survey:hover,
+.card-question:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.12);
+}
+
+
+
+/* Toplam oy etiketi */
+.vote-badge {
+    background: rgba(37, 99, 235, 0.08);
+    color: #1d4ed8;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+
+/* Anket doldurma sayfasındaki soru kartları */
+.card-take {
+    border-radius: 18px;
+    border: none;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    padding: 18px 24px;
+}
+
+.card-take:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 24px 55px rgba(15, 23, 42, 0.12);
+}
+
+/* Şıkların olduğu seçenek kutuları */
+.option-box {
+    background: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: 0.15s ease;
+    display: flex;
+    align-items: center;
+}
+
+.option-box:hover {
+    background: #eef2ff;
+    border-color: #6366f1;
+}
+
+/* Radio gizli + sadece özel kutu görünsün */
+.option-box input[type="radio"] {
+    transform: scale(1.1);
+    margin-right: 9px;
+}
+
+
+.option-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.option-list li {
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+}
+
+.option-letter {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: #eef2ff;
+    color: #4338ca;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+
+/* Soru numarası etiketi */
+.question-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #6156dc;
+    color: #eef2ff;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.question-header {
+    display: flex;
+    align-items: center;
+}
+
+
+
+/* Form kartları (Yeni Soru Ekle / Anketi Düzenle) */
+.form-card {
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+    padding: 24px 28px;
+    margin-bottom: 28px;
+}
+
+/* Form başlıkları için küçük alt başlık */
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.section-subtitle {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 18px;
+}
+
+/* Input genel görünümü biraz daha tok dursun */
+.form-control {
+    border-radius: 14px;
+    border-color: #e5e7eb;
+    height: 48px;
+    padding: 10px 14px;
+    box-shadow: none;
+}
+
+.form-control:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* Textarea için yükseklik */
+textarea.form-control {
+    height: auto;
+    min-height: 110px;
+}
+
+
+.btn-light {
+    background-color: #edeeee;
+}
+
+
+.btn-light:hover {
+    background-color: #d5d5d8;
+}

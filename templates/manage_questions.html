@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Anket Soruları{% endblock %}
+
+{% block content %}
+<div class="main-card">
+    <h2 class="page-title mb-1">"{{ survey.title }}" Anketi</h2>
+    <p class="page-subtitle mb-4">
+        Bu anket için soru ve şıklar ekleyebilirsiniz.
+    </p>
+
+    <!-- Yeni soru ekleme formu -->
+    <h5 class="mb-3">Yeni Soru Ekle</h5>
+    <form method="post" class="mb-4">
+        <div class="form-group">
+            <label>Soru Metni</label>
+            <input type="text" name="question_text" class="form-control" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label>Şık 1</label>
+                <input type="text" name="option1" class="form-control">
+            </div>
+            <div class="form-group col-md-3">
+                <label>Şık 2</label>
+                <input type="text" name="option2" class="form-control">
+            </div>
+            <div class="form-group col-md-3">
+                <label>Şık 3</label>
+                <input type="text" name="option3" class="form-control">
+            </div>
+            <div class="form-group col-md-3">
+                <label>Şık 4</label>
+                <input type="text" name="option4" class="form-control">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary rounded-pill">Soruyu Kaydet</button>
+        <a href="{{ url_for('list_surveys') }}" class="btn btn-light rounded-pill">Anket Listesine Dön</a>
+    </form>
+
+    <br><hr><br>
+
+    <!-- Mevcut sorular -->
+    <h5 class="mb-3">Mevcut Sorular</h5>
+    {% if questions %}
+        {% for q in questions %}
+            <div class="card card-question mb-2">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="question-header d-flex align-items-center mb-2">
+                            <span class="question-number">{{ loop.index }}</span>
+                            <strong class="ml-2">{{ q.question_text }}</strong>
+                        </div>
+                        <ul class="option-list mb-0 mt-2">
+                            {% for o in q.options %}
+                                <li>
+                                    <span class="option-letter">
+                                        {{ ('abcdefghijklmnopqrstuvwxyz')[loop.index0] }}
+                                    </span>
+                                    {{ o.option_text }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="ml-3">
+                        <form method="post"
+                              action="{{ url_for('delete_question', survey_id=survey.id, question_id=q.id) }}"
+                              onsubmit="return confirm('Bu soruyu silmek istediğine emin misin?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                Soruyu Sil
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-muted-sm">Bu ankete henüz soru eklenmemiş.</p>
+    {% endif %}
+</div>
+{% endblock %}
