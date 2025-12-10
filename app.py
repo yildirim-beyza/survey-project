@@ -233,5 +233,6 @@ def show_results(survey_id):
     conn.close()
     return render_template("results.html", survey=survey, questions=questions)
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
