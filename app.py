@@ -6,13 +6,15 @@ app = Flask(__name__)
 
 # ---- VERİTABANI BAĞLANTISI ----
 def get_db():
-    return pymysql.connect(
+    conn = pymysql.connect(
         host=os.environ.get("MYSQL_HOST", "mysql"),
         user=os.environ.get("MYSQL_USER", "root"),
-        password=os.environ.get("MYSQL_PASSWORD", "beyza6."),
+        password=os.environ.get("MYSQL_PASSWORD", ""),
         database=os.environ.get("MYSQL_DB", "survey_app"),
+        charset="utf8mb4",
         cursorclass=pymysql.cursors.DictCursor
     )
+    return conn
 
 # ---- ANASAYFA -> ANKET LİSTESİNE YÖNLENDİR ----
 @app.route("/")
