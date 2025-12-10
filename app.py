@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
+import os
 import pymysql
 
 app = Flask(__name__)
@@ -6,10 +7,10 @@ app = Flask(__name__)
 # ---- VERİTABANI BAĞLANTISI ----
 def get_db():
     return pymysql.connect(
-        host="localhost",
-        user="root",
-        password="beyza6.",  # <-- değiştirmeyi unutma
-        database="survey_app",
+        host=os.environ.get("MYSQL_HOST", "mysql"),
+        user=os.environ.get("MYSQL_USER", "root"),
+        password=os.environ.get("MYSQL_PASSWORD", "beyza6."),
+        database=os.environ.get("MYSQL_DB", "survey_app"),
         cursorclass=pymysql.cursors.DictCursor
     )
 

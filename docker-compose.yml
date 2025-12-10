@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: survey-project-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=beyza6.
+      - MYSQL_DATABASE=survey_app
+    volumes:
+      - survey-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  web:
+    build: .
+    container_name: survey-project-web
+    depends_on:
+      - mysql
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=beyza6.
+      - MYSQL_DB=survey_app
+    ports:
+      - "80:5000"   # dışarıdan 80, container içinde 5000
+
+volumes:
+  survey-data:
