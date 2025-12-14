@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Admin Girişi{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+      <div class="auth-icon">🔒</div>
+      <div>
+        <div class="auth-title">Admin Girişi</div>
+        <div class="auth-sub">Yönetim paneline erişmek için giriş yap.</div>
+      </div>
+    </div>
+
+    {% if error %}
+      <div class="auth-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" class="auth-form" autocomplete="off">
+      <label class="auth-label">Kullanıcı Adı</label>
+      <input name="username" class="form-control auth-input" placeholder="kullanıcı adı" required>
+
+      <label class="auth-label mt-3">Şifre</label>
+      <input name="password" type="password" class="form-control auth-input" placeholder="••••••••" required>
+
+      <button type="submit" class="btn btn-primary rounded-pill auth-btn mt-4">Giriş Yap</button>
+    </form>
+  </div>
+</div>
+
+<style>
+  .auth-wrap{
+    min-height: calc(100vh - 78px); 
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px 14px;
+  }
+  .auth-card{
+    width: min(520px, 100%);
+    background: rgba(255,255,255,.92);
+    border-radius: 18px;
+    padding: 20px 20px 18px;
+    box-shadow: 0 18px 60px rgba(2,6,23,.18);
+    border: 1px solid rgba(15,23,42,.08);
+    backdrop-filter: blur(8px);
+  }
+  .auth-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom: 14px;
+  }
+  .auth-icon{
+    width:42px;height:42px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius: 12px;
+    background: rgba(37,99,235,.12);
+    font-size: 20px;
+  }
+  .auth-title{ font-weight:800; font-size:22px; line-height:1.1; }
+  .auth-sub{ color:#64748b; margin-top:3px; }
+  .auth-label{ font-weight:600; margin-top:10px; }
+  .auth-input{ border-radius: 12px; padding: 12px 12px; }
+  .auth-btn{ width:100%; padding: 11px 14px; font-weight:700; }
+  .auth-error{
+    background: rgba(239,68,68,.10);
+    color: #b91c1c;
+    border: 1px solid rgba(239,68,68,.25);
+    padding: 10px 12px;
+    border-radius: 12px;
+    margin: 10px 0 14px;
+    font-weight:600;
+  }
+</style>
+{% endblock %}

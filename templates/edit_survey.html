@@ -3,23 +3,159 @@
 
 {% block content %}
 <div class="main-card">
-    <h2 class="page-title mb-1">Anketi Düzenle</h2>
-    <p class="page-subtitle mb-4">
-        Anket başlığını ve/veya açıklamasını güncelleyin.
-    </p>
+  <h2 class="page-title mb-1">Anketi Düzenle</h2>
+  <p class="page-subtitle mb-4">Anket bilgileri + katılımcı bilgilerini buradan yönetin.</p>
 
+  <!-- 1) Anket başlık/açıklama -->
+  <div class="form-card mb-4">
     <form method="post">
-        <div class="form-group">
-            <label>Başlık</label>
-            <input type="text" name="title" class="form-control" required
-                   value="{{ survey.title }}">
-        </div>
-        <div class="form-group">
-            <label>Açıklama</label>
-            <textarea name="description" class="form-control" rows="3">{{ survey.description }}</textarea>
-        </div>
-        <button type="submit" class="btn btn-primary rounded-pill">Kaydet</button>
-        <a href="{{ url_for('list_surveys') }}" class="btn btn-light rounded-pill">Vazgeç</a>
+      <input type="hidden" name="form_type" value="survey">
+      <div class="form-group">
+        <label>Başlık</label>
+        <input type="text" name="title" class="form-control" required value="{{ survey.title }}">
+      </div>
+      <div class="form-group">
+        <label>Açıklama</label>
+        <textarea name="description" class="form-control" rows="3">{{ survey.description }}</textarea>
+      </div>
+      <button type="submit" class="btn btn-primary rounded-pill">Kaydet</button>
+      <a href="{{ url_for('list_surveys') }}" class="btn btn-light rounded-pill ml-2">Geri</a>
     </form>
+  </div>
+
+  <hr>
+
+  <!-- 2) Katılımcı bilgi alanları -->
+  <h5 class="mb-2">Katılımcı Bilgi Alanları</h5>
+  <div class="text-muted-sm mb-3">
+        Katılımcıdan alınacak bilgileri ekleyin.
+        (Örn: Ad, Soyad, E-mail, Yaş, Cinsiyet...)  </div>
+
+  <div class="form-card">
+    <form method="post" id="pfForm">
+      <input type="hidden" name="form_type" value="participant_field_add">
+
+      <div class="form-row">
+        <div class="form-group col-md-5">
+          <label>Alan adı (Etiket)</label>
+          <input type="text" name="field_label" class="form-control" placeholder="Örn: Yaş / Cinsiyet / Departman" required>
+        </div>
+
+        <div class="form-group col-md-4">
+          <label>Tip</label>
+          <select name="field_type" id="pfType" class="form-control">
+            <option value="text" selected>Açık Uçlu</option>
+            <option value="single_choice">Tek Seçim</option>
+            <option value="multiple_choice">Çok Seçim</option>
+          </select>
+        </div>
+
+        <div class="form-group col-md-3">
+          <label>Zorunlu mu?</label>
+          <select name="is_required" class="form-control">
+            <option value="0" selected>Hayır</option>
+            <option value="1">Evet</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="pfOptionsSection" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <div class="section-title mb-0">Seçenekler</div>
+            <div class="text-muted-sm">Tek/çok seçim için seçenek ekle.</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" id="pfAddOpt">+ Seçenek</button>
+        </div>
+
+        <div id="pfOptionsList"></div>
+        <small class="text-muted-sm d-block mt-2">Boş seçenekler kaydedilmez.</small>
+      </div>
+
+      <button type="submit" class="btn btn-primary rounded-pill mt-3">Alanı Ekle</button>
+    </form>
+  </div>
+
+  <br><hr><br>
+
+  <h5 class="mb-3">Mevcut Katılımcı Bilgileri</h5>
+  {% if participant_fields and participant_fields|length > 0 %}
+    {% for f in participant_fields %}
+      <div class="card card-question mb-2">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ f.field_label }}</strong>
+            <div class="text-muted-sm mt-1">
+              Tip:
+              {% if f.field_type == "text" %} Açık uçlu
+              {% elif f.field_type == "single_choice" %} Tek seçim
+              {% else %} Çok seçim
+              {% endif %}
+              · Zorunlu: {{ "Evet" if f.is_required else "Hayır" }}
+            </div>
+
+            {% if f.field_type in ["single_choice","multiple_choice"] %}
+              <ul class="option-list mb-0 mt-2">
+                {% for o in f.options %}
+                  <li>
+                    <span class="option-letter">{{ ('abcdefghijklmnopqrstuvwxyz')[loop.index0] }}</span>
+                    {{ o.option_text }}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+
+          <div class="ml-3">
+            <form method="post"
+                  action="{{ url_for('delete_participant_field', survey_id=survey.id, field_id=f.id) }}"
+                  onsubmit="return confirm('Bu katılımcı bilgisini silmek istediğinize emin misiniz?');">
+              <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Sil</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="text-muted-sm">Henüz ek alan yok.</div>
+  {% endif %}
+
 </div>
+
+<script>
+(function () {
+  const pfType = document.getElementById("pfType");
+  const sec = document.getElementById("pfOptionsSection");
+  const list = document.getElementById("pfOptionsList");
+  const addBtn = document.getElementById("pfAddOpt");
+
+  function createOpt(val="") {
+    const row = document.createElement("div");
+    row.className = "form-row align-items-center mb-2";
+    row.innerHTML = `
+      <div class="form-group col-md-10 mb-0">
+        <input type="text" name="pf_options[]" class="form-control" placeholder="Seçenek..." value="${val.replace(/"/g,'&quot;')}">
+      </div>
+      <div class="form-group col-md-2 mb-0 text-right">
+        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill">Sil</button>
+      </div>
+    `;
+    row.querySelector("button").addEventListener("click", () => row.remove());
+    return row;
+  }
+
+  function update() {
+    const t = pfType.value;
+    const show = (t === "single_choice" || t === "multiple_choice");
+    sec.style.display = show ? "block" : "none";
+    if (show && list.children.length < 2) {
+      while (list.children.length < 2) list.appendChild(createOpt(""));
+    }
+  }
+
+  addBtn.addEventListener("click", () => list.appendChild(createOpt("")));
+  pfType.addEventListener("change", update);
+  update();
+})();
+</script>
 {% endblock %}

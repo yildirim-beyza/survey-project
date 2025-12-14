@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+{% block title %}İstatistikler{% endblock %}
+
+{% block content %}
+<div class="main-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="page-title mb-1">İstatistikler</h2>
+      <p class="page-subtitle mb-0">Anket seç, detaylı istatistikleri gör.</p>
+    </div>
+    <a href="{{ url_for('list_surveys') }}" class="btn btn-light rounded-pill">Dashboard</a>
+  </div>
+
+  <!-- ÜST BAR: Anket + Görünüm + Filtreler + Uygula -->
+  <form method="get" class="form-row align-items-end mb-2">
+    <div class="form-group col-md-6 mb-2">
+      <label>Anket Seç</label>
+      <select name="survey_id" class="form-control">
+        <option value="">-- Seç --</option>
+        {% for s in surveys %}
+          <option value="{{ s.id }}" {% if survey_id==s.id %}selected{% endif %}>{{ s.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group col-md-3 mb-2">
+      <label>Görünüm</label>
+      <select name="view" class="form-control">
+        <option value="questions" {% if view=="questions" %}selected{% endif %}>Soru Bazlı</option>
+        <option value="participants" {% if view=="participants" %}selected{% endif %}>Katılımcı Bazlı</option>
+      </select>
+    </div>
+
+    <div class="form-group col-md-1 mb-2">
+      <label>&nbsp;</label>
+      <button type="button"
+              class="btn btn-outline-secondary rounded-pill w-100"
+              onclick="toggleFilters()"
+              {% if not participant_fields or participant_fields|length == 0 %}disabled{% endif %}>
+        ⚙️
+      </button>
+    </div>
+
+    <div class="form-group col-md-2 mb-2">
+      <button class="btn btn-primary rounded-pill w-100" type="submit">Uygula</button>
+    </div>
+  </form>
+
+  <!-- GİZLİ FİLTRE KARTI -->
+  {% if selected_survey and participant_fields and participant_fields|length > 0 %}
+    <div id="filterBox" class="card card-result mb-3" style="display:none;">
+      <div class="card-body">
+        <div class="section-title mb-3">Filtreler</div>
+
+        <form method="get">
+          <input type="hidden" name="survey_id" value="{{ survey_id }}">
+          <input type="hidden" name="view" value="{{ view }}">
+          {% if participant_id %}
+            <input type="hidden" name="participant_id" value="{{ participant_id }}">
+          {% endif %}
+
+          <div class="form-row">
+            {% for f in participant_fields %}
+              <div class="form-group col-md-4 mb-2">
+                <label>{{ f.field_label }}</label>
+
+                {% if f.field_type == "text" %}
+                  <input type="text"
+                         name="pf_{{ f.id }}"
+                         class="form-control"
+                         value="{{ request.args.get('pf_' ~ f.id) or '' }}"
+                         placeholder="Ara...">
+                {% elif f.field_type in ["single_choice","multiple_choice"] %}
+                  <select name="pf_{{ f.id }}" class="form-control">
+                    <option value="">-- Hepsi --</option>
+                    {% for o in field_options[f.id] %}
+                      <option value="{{ o.id }}" {% if (request.args.get('pf_' ~ f.id) == (o.id|string)) %}selected{% endif %}>
+                        {{ o.option_text }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                {% else %}
+                  <input type="text"
+                         name="pf_{{ f.id }}"
+                         class="form-control"
+                         value="{{ request.args.get('pf_' ~ f.id) or '' }}"
+                         placeholder="Ara...">
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex justify-content-end mt-2">
+            <button class="btn btn-primary rounded-pill px-4" type="submit" onclick="hideFiltersSoon()">Filtrele</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if selected_survey %}
+    {% if overview %}
+      <div class="dash-stats mb-4">
+        <div class="dash-stat">
+          <div class="dash-stat-label">Toplam Katılımcı</div>
+          <div class="dash-stat-value">{{ overview.participant_count }}</div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-label">Toplam Soru</div>
+          <div class="dash-stat-value">{{ overview.total_questions }}</div>
+        </div>
+        <div class="dash-stat">
+          <div class="dash-stat-label">Zorunlu Soru</div>
+          <div class="dash-stat-value">{{ overview.required_questions }}</div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if view == "participants" %}
+      <hr class="my-4">
+      <h4 class="mb-3">Katılımcı Bazlı İstatistikler</h4>
+
+      {% if participants is not none %}
+        <div class="text-muted-sm mb-2" style="margin-top:-6px;">
+            Seçtiğiniz kriterlere uygun <strong>{{ participants|length }}</strong> katılımcı listelendi.
+        </div>
+      {% endif %}
+
+      {% if participants and participants|length > 0 %}
+        <form method="get" class="form-row align-items-end mb-3">
+          <input type="hidden" name="survey_id" value="{{ survey_id }}">
+          <input type="hidden" name="view" value="participants">
+
+          {% for f in participant_fields %}
+            {% set k = 'pf_' ~ f.id %}
+            {% if request.args.get(k) %}
+              <input type="hidden" name="{{ k }}" value="{{ request.args.get(k) }}">
+            {% endif %}
+          {% endfor %}
+
+          <div class="form-group col-md-8 mb-2">
+            <label>Katılımcı Seç</label>
+            <select name="participant_id" class="form-control">
+              <option value="">-- Seç --</option>
+              {% for p in participants %}
+                {% set fn = (p.first_name or '').strip() %}
+                {% set ln = (p.last_name or '').strip() %}
+                {% set label = (fn ~ ' ' ~ (ln[:1] ~ '.') if ln else fn) | trim %}
+                {% if not label %}
+                  {% set label = 'Katılımcı' %}
+                {% endif %}
+                <option value="{{ p.id }}" {% if participant_id==p.id %}selected{% endif %}>
+                  #{{ loop.index }} • {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group col-md-4 mb-2">
+            <button class="btn btn-light rounded-pill w-100" type="submit">Listele</button>
+          </div>
+        </form>
+
+        {% if selected_participant and participant_detail %}
+          <div class="card card-result mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div style="font-weight:700; font-size:1.05rem;">
+                    {{ (selected_participant.first_name or '') }} {{ (selected_participant.last_name or '') }}
+                  </div>
+                  <div class="text-muted-sm">{{ selected_participant.email }}</div>
+                  <div class="text-muted-sm">Tarih: {{ selected_participant.ts }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-muted-sm">Cevaplanan</div>
+                  <div style="font-weight:700">
+                    {{ participant_detail.answered_count }} / {{ participant_detail.total_questions }}
+                  </div>
+
+                {% set dur = selected_participant.duration_seconds or 0 %}
+                {% set mm = (dur // 60) %}
+                {% set ss = (dur % 60) %}
+                <div class="text-muted-sm mt-2">Tamamlama Süresi</div>
+                <div style="font-weight:700; font-size:1.05rem;">
+                    {{ "%d:%02d"|format(mm, ss) }}
+                </div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        {# --- Katılımcı mini özet kartları + mini chart --- #}
+        {% set answered = participant_detail.answered_count %}
+        {% set totalq = participant_detail.total_questions %}
+        {% set missing_req = participant_detail.missing_required %}
+        {% set missing = (totalq - answered) %}
+        {% set completion = ( (answered * 100 / totalq) if totalq else 0 ) %}
+
+        <div class="card card-result mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+            <div class="col-md-4 mb-3 mb-md-0">
+                <div class="text-muted-sm mb-1">Tamamlama Oranı</div>
+                <div style="height:140px;">
+                <canvas id="participant_completion_chart"></canvas>
+                </div>
+                <div class="text-muted-sm mt-2">
+                <strong>{{ answered }}</strong> / {{ totalq }} cevaplandı
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="row">
+                <div class="col-md-4 mb-2">
+                    <div class="dash-stat" style="padding:14px;">
+                    <div class="dash-stat-label">Cevaplanan</div>
+                    <div class="dash-stat-value">{{ answered }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <div class="dash-stat" style="padding:14px;">
+                    <div class="dash-stat-label">Boş Bırakılan</div>
+                    <div class="dash-stat-value">{{ missing }}</div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <div class="dash-stat" style="padding:14px;">
+                    <div class="dash-stat-label">Tamamlanma Süresi</div>
+                    <div class="dash-stat-value">{{ missing_req }}</div>
+                    </div>
+                </div>
+                </div>
+
+                <div class="mt-2">
+                <div class="text-muted-sm mb-1">İlerleme</div>
+                <div class="progress" style="height:10px; border-radius:999px;">
+                    <div class="progress-bar"
+                        role="progressbar"
+                        style="width: {{ completion|round(0) }}%; border-radius:999px;"
+                        aria-valuenow="{{ completion|round(0) }}" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                <div class="text-muted-sm mt-1">%{{ completion|round(0) }}</div>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <script>
+        window.__participantStats = {
+            answered: {{ answered }},
+            missing: {{ missing }},
+            total: {{ totalq }},
+            completion: {{ completion|round(2) }}
+        };
+        </script>
+
+          {% for q in participant_detail.questions %}
+            <div class="card card-result mb-2">
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="question-number">{{ loop.index }}</span>
+                  <div class="ml-2">
+                    <div style="font-weight:600">
+                      {{ q.text }}
+                      {% if q.is_required %}<span class="text-danger">*</span>{% endif %}
+                    </div>
+                    <div class="text-muted-sm">
+                      Tip: {{ q.type }}
+                      {% if q.answered %}
+                        • <span style="color:#16a34a; font-weight:600;">Cevaplandı</span>
+                      {% else %}
+                        • <span style="color:#ef4444; font-weight:600;">Boş</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="option-box" style="cursor:default;">
+                  <span>{{ q.value }}</span>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-muted-sm">Yukarıdan bir katılımcı seç.</div>
+        {% endif %}
+      {% else %}
+        <div class="text-muted-sm">Bu filtrelere göre katılımcı bulunamadı.</div>
+      {% endif %}
+
+    {% else %}
+      <hr class="my-4">
+      <h4 class="mb-3">Soru Bazlı İstatistikler</h4>
+
+      {% for q in qstats %}
+        <div class="card card-result mb-3">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <span class="question-number">{{ loop.index }}</span>
+              <div class="ml-2">
+                <div style="font-weight:600">{{ q.question_text }}</div>
+                <div class="text-muted-sm">
+                  Tip: {{ q.question_type }}
+                  • Cevaplayan kişi: {{ q.responders }}
+                  • Boş bırakan: <strong>{{ q.missing }}</strong>
+                </div>
+              </div>
+            </div>
+
+            {% if q.question_type in ["single_choice","multiple_choice","rating"] %}
+              <div class="mt-3">
+                <div class="chart-wrapper"
+                     data-chart="{% if q.question_type=='single_choice' %}pie{% elif q.question_type=='multiple_choice' %}hbar{% else %}bar{% endif %}">
+                  <canvas id="chart_q_{{ q.id }}"></canvas>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if q.question_type in ["single_choice","multiple_choice"] %}
+              <div class="mt-3">
+                {% for o in q.options %}
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div class="text-muted-sm">{{ o.text }}</div>
+                    <div class="text-muted-sm"><strong>{{ o.count }}</strong> ({{ o.pct }}%)</div>
+                  </div>
+                {% endfor %}
+              </div>
+
+              <div class="text-muted-sm mt-2">
+                En çok: <strong>{{ q.most.text if q.most else "-" }}</strong>
+                • En az: <strong>{{ q.least.text if q.least else "-" }}</strong>
+              </div>
+
+            {% elif q.question_type == "rating" %}
+              <div class="mt-2 text-muted-sm">
+                Ortalama: <strong>{{ q.rating.mean if q.rating.mean is not none else "-" }}</strong>
+                &nbsp;&nbsp; Medyan: <strong>{{ q.rating.median if q.rating.median is not none else "-" }}</strong>
+                &nbsp;&nbsp; Std: <strong>{{ q.rating.std if q.rating.std is not none else "-" }}</strong>
+                &nbsp;&nbsp; N: <strong>{{ q.rating.n }}</strong>
+              </div>
+
+              {% if q.rating.dist and q.rating.dist|length > 0 %}
+                <div class="mt-3">
+                  {% for d in q.rating.dist %}
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <div class="text-muted-sm">Skor {{ d.score }}</div>
+                      <div class="text-muted-sm"><strong>{{ d.count }}</strong></div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+            {% elif q.question_type == "text" %}
+              <div class="mt-3">
+                <div class="text-muted-sm">Cevap sayısı: <strong>{{ q.text.n }}</strong></div>
+                <div class="text-muted-sm">Ortalama uzunluk: <strong>{{ q.text.avg_len }}</strong> karakter</div>
+
+                <div class="mt-3">
+                  <div class="section-title">En çok geçen kelimeler</div>
+                  {% if q.text.top_words and q.text.top_words|length > 0 %}
+                    <div class="d-flex flex-wrap">
+                      {% for w in q.text.top_words %}
+                        <span class="badge badge-pill mr-2 mb-2" style="background:#eef2ff;color:#4338ca;padding:8px 12px;">
+                          {{ w.w }} ({{ w.c }})
+                        </span>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="text-muted-sm">Henüz veri yok.</div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+  {% else %}
+    <div class="text-muted-sm">Yukarıdan bir anket seç.</div>
+  {% endif %}
+</div>
+
+<style>
+  .chart-wrapper{
+    position: relative;
+    width: 100%;
+    height: 170px;
+    max-height: 170px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .chart-wrapper[data-chart="pie"]{
+    height: 190px;
+    max-height: 190px;
+  }
+  .chart-wrapper canvas{
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+</style>
+
+<script>
+function toggleFilters() {
+  const box = document.getElementById("filterBox");
+  if (!box) return;
+  box.style.display = (box.style.display === "none" || box.style.display === "") ? "block" : "none";
+}
+function hideFiltersSoon(){
+  const box = document.getElementById("filterBox");
+  if (!box) return;
+  box.style.display = "none";
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+function toggleFilters() {
+  const box = document.getElementById("filterBox");
+  if (!box) return;
+  box.style.display = (box.style.display === "none" || box.style.display === "") ? "block" : "none";
+}
+function hideFiltersSoon(){
+  const box = document.getElementById("filterBox");
+  if (!box) return;
+  box.style.display = "none";
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const CHART_COLORS = [
+  '#6366f1', // indigo
+  '#4abea1', // green
+  '#ff609e', // pink
+  '#ffc659', // amber
+  '#06b6d4', // cyan
+  '#a855f7', // violet
+  '#ef4444', // red
+  '#84cc16'  // lime
+];
+
+function pickColors(n) {
+  const arr = [];
+  for (let i = 0; i < n; i++) arr.push(CHART_COLORS[i % CHART_COLORS.length]);
+  return arr;
+}
+
+(function () {
+  const payload = {{ (qcharts_json or "[]")|safe }};
+  if (!payload || payload.length === 0) return;
+
+  window.__charts = window.__charts || {};
+
+  const gridColor = "rgba(148, 163, 184, 0.18)";
+  const tickColor = "rgba(71, 85, 105, 0.9)";
+
+  payload.forEach(item => {
+    const canvasId = `chart_q_${item.qid}`;
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+
+    if (window.__charts[canvasId]) window.__charts[canvasId].destroy();
+
+    const ctx = el.getContext("2d");
+    const labels = item.labels || [];
+    const data = item.data || [];
+    const qtype = item.qtype || item.type; 
+
+    let config = {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Adet',
+          data,
+          backgroundColor: 'rgba(59, 130, 246, 0.80)',
+          borderWidth: 0,
+          borderRadius: 10,
+          barPercentage: 0.65,
+          categoryPercentage: 0.7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true, displayColors: false }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0, color: tickColor }, grid: { color: gridColor } },
+          x: { ticks: { color: tickColor }, grid: { display: false } }
+        }
+      }
+    };
+
+    // single_choice -> PIE (renkli)
+    if (qtype === "single_choice") {
+      config = {
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: pickColors(labels.length),
+            borderColor: '#ffffff',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12 } },
+            tooltip: { enabled: true, displayColors: true }
+          }
+        }
+      };
+    }
+
+    // multiple_choice -> horizontal bar (renkli)
+    else if (qtype === "multiple_choice") {
+      config = {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Adet',
+            data,
+            backgroundColor: pickColors(labels.length),
+            borderRadius: 8,
+            borderWidth: 0,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true, displayColors: false }
+          },
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0, color: tickColor }, grid: { color: gridColor } },
+            y: { ticks: { color: tickColor }, grid: { display: false } }
+          }
+        }
+      };
+    }
+
+    // rating -> bar (renkli)
+    else if (qtype === "rating") {
+      config = {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Adet',
+            data,
+            backgroundColor: pickColors(labels.length),
+            borderRadius: 8,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true, displayColors: false }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0, color: tickColor }, grid: { color: gridColor } },
+            x: { ticks: { color: tickColor }, grid: { display: false } }
+          }
+        }
+      };
+    }
+
+    window.__charts[canvasId] = new Chart(ctx, config);
+  });
+})();
+
+
+
+(function(){
+  if (!window.__participantStats) return;
+
+  const el = document.getElementById("participant_completion_chart");
+  if (!el) return;
+
+  window.__charts = window.__charts || {};
+  const key = "participant_completion_chart";
+  if (window.__charts[key]) window.__charts[key].destroy();
+
+  const s = window.__participantStats;
+  const done = s.answered || 0;
+  const total = s.total || 0;
+  const rest = Math.max(total - done, 0);
+
+  window.__charts[key] = new Chart(el.getContext("2d"), {
+    type: "doughnut",
+    data: {
+      labels: ["Cevaplanan", "Boş"],
+      datasets: [{
+        data: [done, rest],
+        backgroundColor: ["#22c55e", "#e5e7eb"],   // yeşil + gri
+        borderColor: ["#ffffff", "#ffffff"],
+        borderWidth: 2,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "70%",
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true, displayColors: false }
+      }
+    }
+  });
+})();
+
+
+
+</script>
+
+{% endblock %}

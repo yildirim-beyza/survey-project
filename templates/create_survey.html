@@ -3,22 +3,199 @@
 
 {% block content %}
 <div class="main-card">
-    <h2 class="page-title mb-1">Yeni Anket Oluştur</h2>
-    <p class="page-subtitle mb-4">
-        Başlık ve açıklamayı girerek yeni bir anket tanımlayın.
-    </p>
+  <h2 class="page-title mb-1">Yeni Anket Oluştur</h2>
+  <p class="page-subtitle mb-4">Başlık, açıklama ve katılımcı bilgi alanlarını ayarla.</p>
 
-    <form method="post">
-        <div class="form-group">
-            <label>Başlık</label>
-            <input type="text" name="title" class="form-control" required>
+  <div class="form-card">
+    <form method="post" id="createSurveyForm">
+
+      <!-- Anket bilgileri -->
+      <div class="form-group">
+        <label>Başlık</label>
+        <input type="text" name="title" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+        <label>Açıklama</label>
+        <textarea name="description" class="form-control" rows="3"></textarea>
+      </div>
+
+      <hr class="my-4">
+
+      <div class="section-title mb-2">Katılımcı Bilgileri</div>
+      <div class="text-muted-sm mb-3">
+        Katılımcıdan alınacak bilgileri ekleyin.
+        (Örn: Ad, Soyad, E-mail, Yaş, Cinsiyet...)
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col-md-5">
+          <label>Alan adı (Etiket)</label>
+          <input type="text" id="pf_label" class="form-control" placeholder="Örn: Ad / e-Mail / Yaş / Cinsiyet">
         </div>
-        <div class="form-group">
-            <label>Açıklama</label>
-            <textarea name="description" class="form-control" rows="3"></textarea>
+
+        <div class="form-group col-md-4">
+          <label>Tip</label>
+          <select id="pf_type" class="form-control">
+            <option value="text" selected>Açık Uçlu</option>
+            <option value="single_choice">Tek Seçim</option>
+            <option value="multiple_choice">Çok Seçim</option>
+          </select>
         </div>
+
+        <div class="form-group col-md-3">
+          <label>Zorunlu mu?</label>
+          <select id="pf_required" class="form-control">
+            <option value="0" selected>Hayır</option>
+            <option value="1">Evet</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="pfOptionsSection" style="display:none;" class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <div class="section-title mb-0">Seçenekler</div>
+            <div class="text-muted-sm">Tek/çok seçim için seçenek ekle (en az 2).</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" id="pfAddOptBtn">+ Seçenek</button>
+        </div>
+        <div id="pfOptionsList"></div>
+        <small class="text-muted-sm d-block mt-2">Boş seçenekler kaydedilmez.</small>
+      </div>
+
+      <button type="button" class="btn btn-outline-primary rounded-pill" id="addFieldToDraft">
+        + Listeye Ekle
+      </button>
+
+      <div id="draftFieldsWrap" class="mt-3" style="display:none;">
+        <hr>
+        <div class="section-title mb-2">Eklenecek Alanlar</div>
+        <div id="draftFields"></div>
+      </div>
+
+      <div id="hiddenDraftInputs"></div>
+
+      <div class="mt-4">
         <button type="submit" class="btn btn-primary rounded-pill">Kaydet</button>
-        <a href="{{ url_for('list_surveys') }}" class="btn btn-light rounded-pill">İptal</a>
+        <a href="{{ url_for('list_surveys') }}" class="btn btn-light rounded-pill ml-2">İptal</a>
+      </div>
     </form>
+  </div>
 </div>
+
+<script>
+(function () {
+  const pfType = document.getElementById("pf_type");
+  const optSec = document.getElementById("pfOptionsSection");
+  const optList = document.getElementById("pfOptionsList");
+  const addOptBtn = document.getElementById("pfAddOptBtn");
+
+  const addDraftBtn = document.getElementById("addFieldToDraft");
+  const draftWrap = document.getElementById("draftFieldsWrap");
+  const draftFields = document.getElementById("draftFields");
+  const hiddenInputs = document.getElementById("hiddenDraftInputs");
+
+  function createOptRow(val="") {
+    const row = document.createElement("div");
+    row.className = "form-row align-items-center mb-2";
+    row.innerHTML = `
+      <div class="form-group col-md-10 mb-0">
+        <input type="text" class="form-control pf_opt" placeholder="Seçenek..." value="${val.replace(/"/g,'&quot;')}">
+      </div>
+      <div class="form-group col-md-2 mb-0 text-right">
+        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill">Sil</button>
+      </div>
+    `;
+    row.querySelector("button").addEventListener("click", () => row.remove());
+    return row;
+  }
+
+  function ensureMinOptions() {
+    if (optList.children.length < 2) {
+      while (optList.children.length < 2) optList.appendChild(createOptRow(""));
+    }
+  }
+
+  function updateOptUI() {
+    const t = pfType.value;
+    const show = (t === "single_choice" || t === "multiple_choice");
+    optSec.style.display = show ? "block" : "none";
+    if (show) ensureMinOptions();
+  }
+
+  addOptBtn.addEventListener("click", () => optList.appendChild(createOptRow("")));
+  pfType.addEventListener("change", updateOptUI);
+  updateOptUI();
+
+  function resetFieldInputs() {
+    document.getElementById("pf_label").value = "";
+    document.getElementById("pf_type").value = "text";
+    document.getElementById("pf_required").value = "0";
+    optList.innerHTML = "";
+    updateOptUI();
+  }
+
+  function renderDraftCard(idx, label, type, required, options) {
+    const card = document.createElement("div");
+    card.className = "card card-question mb-2";
+    card.innerHTML = `
+      <div class="card-body d-flex justify-content-between align-items-start">
+        <div>
+          <strong>${label}</strong>
+          <div class="text-muted-sm mt-1">
+            Tip: ${type} · Zorunlu: ${required ? "Evet" : "Hayır"}
+          </div>
+          ${options && options.length ? `
+            <ul class="option-list mb-0 mt-2">
+              ${options.map((o,i)=>`<li><span class="option-letter">${('abcdefghijklmnopqrstuvwxyz')[i]||''}</span> ${o}</li>`).join("")}
+            </ul>
+          ` : ``}
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill">Kaldır</button>
+      </div>
+    `;
+
+    const h = document.createElement("div");
+    h.dataset.draft = String(idx);
+    h.innerHTML = `
+      <input type="hidden" name="draft_label[]" value="${label.replace(/"/g,'&quot;')}">
+      <input type="hidden" name="draft_type[]" value="${type}">
+      <input type="hidden" name="draft_required[]" value="${required ? 1 : 0}">
+      <input type="hidden" name="draft_options_json[]" value="${encodeURIComponent(JSON.stringify(options || []))}">
+    `;
+
+    card.querySelector("button").addEventListener("click", () => {
+      card.remove();
+      h.remove();
+      if (!draftFields.children.length) draftWrap.style.display = "none";
+    });
+
+    draftFields.appendChild(card);
+    hiddenInputs.appendChild(h);
+    draftWrap.style.display = "block";
+  }
+
+  let draftIndex = 0;
+
+  addDraftBtn.addEventListener("click", () => {
+    const label = document.getElementById("pf_label").value.trim();
+    const type = document.getElementById("pf_type").value;
+    const required = document.getElementById("pf_required").value === "1";
+
+    if (!label) return alert("Alan adı (etiket) boş olamaz.");
+
+    let options = [];
+    if (type === "single_choice" || type === "multiple_choice") {
+      options = Array.from(document.querySelectorAll(".pf_opt"))
+        .map(i => i.value.trim())
+        .filter(Boolean);
+      if (options.length < 2) return alert("Tek/çok seçim için en az 2 seçenek gir.");
+    }
+
+    renderDraftCard(draftIndex++, label, type, required, options);
+    resetFieldInputs();
+  });
+})();
+</script>
 {% endblock %}

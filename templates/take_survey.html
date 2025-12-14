@@ -3,51 +3,247 @@
 
 {% block content %}
 <div class="main-card">
-    <h2 class="page-title mb-1">"{{ survey.title }}" Anketi</h2>
-    {% if survey.description %}
-        <p class="page-subtitle mb-4">{{ survey.description }}</p>
+  <h2 class="page-title mb-1">"{{ survey.title }}"</h2>
+  {% if survey.description %}
+    <p class="page-subtitle mb-4">{{ survey.description }}</p>
+  {% endif %}
+
+  <form method="post" id="takeSurveyForm">
+
+    <!-- Katılımcı bilgileri -->
+    {% if participant_fields and participant_fields|length > 0 %}
+      <div class="card card-take mb-4">
+        <div class="section-title mb-2">Katılımcı Bilgileri</div>
+
+        <style>
+          .pf-grid-auto{
+            display:grid;
+            gap:14px;
+            margin-top: 10px;
+          }
+          .pf-grid-auto.count-1 { grid-template-columns: 1fr; }
+          .pf-grid-auto.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .pf-grid-auto.count-3plus { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+          @media (max-width: 992px){
+            .pf-grid-auto.count-3plus { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          }
+          @media (max-width: 576px){
+            .pf-grid-auto.count-2,
+            .pf-grid-auto.count-3plus { grid-template-columns: 1fr; }
+          }
+
+          .pf-field { min-width:0; }
+          .pf-field .option-box { width:100%; }
+        </style>
+
+        {% set ccount = participant_fields|length %}
+        {% set grid_class = "count-3plus" %}
+        {% if ccount == 1 %}{% set grid_class = "count-1" %}{% endif %}
+        {% if ccount == 2 %}{% set grid_class = "count-2" %}{% endif %}
+
+        <div class="pf-grid-auto {{ grid_class }}">
+          {% for f in participant_fields %}
+            <div class="pf-field">
+              <label class="mb-2">
+                {{ f.field_label }}
+                {% if f.is_required %}<span class="text-danger">*</span>{% endif %}
+              </label>
+
+              {% if f.field_type == "text" %}
+                {% set lbl = (f.field_label or "")|lower %}
+                {% set is_email = ("email" in lbl) or ("e-mail" in lbl) or ("mail" in lbl) %}
+                <input
+                  type="{{ 'email' if is_email else 'text' }}"
+                  class="form-control"
+                  name="pf_text_{{ f.id }}"
+                  {% if f.is_required %}required{% endif %}
+                >
+
+              {% elif f.field_type == "single_choice" %}
+                {% for o in f.options %}
+                  <label class="option-box mb-2">
+                    <input type="radio"
+                           name="pf_{{ f.id }}"
+                           value="{{ o.id }}"
+                           {% if f.is_required %}required{% endif %}>
+                    <span>{{ o.option_text }}</span>
+                  </label>
+                {% endfor %}
+
+              {% else %} {# multiple_choice #}
+                {% for o in f.options %}
+                  <label class="option-box mb-2">
+                    <input type="checkbox"
+                           name="pf_{{ f.id }}"
+                           value="{{ o.id }}">
+                    <span>{{ o.option_text }}</span>
+                  </label>
+                {% endfor %}
+
+                {% if f.is_required %}
+                  <div class="text-muted-sm">(Bu alan zorunlu: en az 1 seçim yap.)</div>
+                {% endif %}
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
     {% endif %}
 
-<form method="post">
-    {% if questions %}
-        {% for q in questions %}
+    <!-- Anket soruları -->
+    {% if questions and questions|length > 0 %}
+      {% for q in questions %}
         <div class="card card-take mb-4">
-            <div class="question-header d-flex align-items-center mb-2">
-                <span class="question-number">{{ loop.index }}</span>
-                <strong class="ml-2">{{ q.question_text }}</strong>
-            </div>
+          <div class="question-header d-flex align-items-center mb-2">
+            <span class="question-number">{{ loop.index }}</span>
+            <strong class="ml-2">
+              {{ q.question_text }}
+              {% if q.is_required %}<span class="text-danger">*</span>{% endif %}
+            </strong>
+          </div>
 
+          {% if q.question_type == "single_choice" %}
             {% for o in q.options %}
-            <label class="option-box mb-2">
+              <label class="option-box mb-2">
                 <input type="radio"
-                    name="question_{{ q.id }}"
-                    value="{{ o.id }}"
-                    required>
+                       name="question_{{ q.id }}"
+                       value="{{ o.id }}"
+                       {% if q.is_required %}required{% endif %}>
                 <span>{{ o.option_text }}</span>
-            </label>
+              </label>
             {% endfor %}
 
-        </div>
-        {% endfor %}
+          {% elif q.question_type == "multiple_choice" %}
+            {% for o in q.options %}
+              <label class="option-box mb-2">
+                <input type="checkbox" name="question_{{ q.id }}" value="{{ o.id }}">
+                <span>&nbsp;&nbsp;{{ o.option_text }}</span>
+              </label>
+            {% endfor %}
+            {% if q.is_required %}
+              <div class="text-muted-sm">(Bu soru zorunlu: en az 1 seçim yap.)</div>
+            {% endif %}
 
-        <button type="submit" class="btn btn-primary submit-btn rounded-pill mt-3">
-            Gönder
-        </button>
-        <a href="{{ url_for('list_surveys') }}"
-           class="btn btn-light submit-btn rounded-pill mt-3 ml-2">
-            İptal
-        </a>
+          {% elif q.question_type == "text" %}
+            <textarea class="form-control"
+                      name="question_text_{{ q.id }}"
+                      rows="3"
+                      placeholder="Yanıtınızı yazın..."
+                      {% if q.is_required %}required{% endif %}></textarea>
+
+          {% elif q.question_type == "rating" %}
+            <div class="text-muted-sm mb-2">Bir değer seç:</div>
+            {% for o in q.options %}
+              <label class="option-box mb-2">
+                <input type="radio"
+                       name="question_{{ q.id }}"
+                       value="{{ o.option_text }}"
+                       {% if q.is_required %}required{% endif %}>
+                <span>{{ o.option_text }}</span>
+              </label>
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <button type="submit" class="btn btn-primary submit-btn rounded-pill mt-2">Gönder</button>
+      <a href="{{ url_for('list_surveys') }}" class="btn btn-light submit-btn rounded-pill mt-2 ml-2">İptal</a>
+
     {% else %}
-        <div class="empty-state">
-            <div class="empty-state-title">Bu ankete henüz soru eklenmemiş.</div>
-            <p class="mb-3">Anketi doldurmak için önce “Soruları Yönet” ekranından en az bir soru eklenmeli.</p>
-            <a href="{{ url_for('manage_questions', survey_id=survey.id) }}"
-               class="btn btn-primary rounded-pill">
-                Soruları Yönet
-            </a>
-        </div>
+      <div class="empty-state">
+        <div class="empty-state-title">Bu ankete henüz soru eklenmemiş.</div>
+        <p class="mb-3">Önce “Soruları Yönet” ekranından soru ekle.</p>
+        <a href="{{ url_for('manage_questions', survey_id=survey.id) }}" class="btn btn-primary rounded-pill">
+          Soruları Yönet
+        </a>
+      </div>
     {% endif %}
-</form>
 
+    <input type="hidden" name="start_ts" id="start_ts">
+    <input type="hidden" name="duration_seconds" id="duration_seconds">
+  </form>
 </div>
+
+<div id="thankModal" class="thank-modal-backdrop" style="display:none;">
+  <div class="thank-modal">
+    <div class="thank-title">Cevaplarınız alındı ✅</div>
+    <div class="thank-text">Anketi doldurduğunuz için teşekkürler.</div>
+
+    <div class="thank-actions">
+      <button type="button" class="btn btn-primary rounded-pill" id="thankOkBtn">Tamam</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .thank-modal-backdrop{
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, .55);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 9999;
+    padding: 16px;
+  }
+  .thank-modal{
+    width: min(520px, 100%);
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px 18px 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  }
+  .thank-title{ font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .thank-text{ color: #475569; margin-bottom: 14px; }
+  .thank-actions{ display:flex; justify-content:flex-end; gap:10px; }
+</style>
+
+<script>
+(function(){
+  const form = document.getElementById("takeSurveyForm");
+  const modal = document.getElementById("thankModal");
+  const okBtn = document.getElementById("thankOkBtn");
+  const startEl = document.getElementById("start_ts");
+  const durEl = document.getElementById("duration_seconds");
+
+  if (!form || !modal || !okBtn || !startEl || !durEl) return;
+
+  startEl.value = Date.now().toString();
+
+  function openModal(){ modal.style.display = "flex"; }
+  function closeModal(){ modal.style.display = "none"; }
+
+  okBtn.addEventListener("click", function(){
+    closeModal();
+    form.reset();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    startEl.value = Date.now().toString();
+  });
+
+  form.addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const start = parseInt(startEl.value || "0", 10);
+    durEl.value = start ? Math.max(0, Math.round((Date.now() - start) / 1000)).toString() : "";
+
+    try{
+      const res = await fetch(window.location.href, {
+        method: "POST",
+        body: new FormData(form),
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data || !data.ok) {
+        alert((data && data.error) ? data.error : "Bir hata oluştu. Tekrar deneyin.");
+        return;
+      }
+
+      openModal();
+    } catch(err){
+      alert("Sunucuya bağlanılamadı.");
+    }
+  });
+})();
+</script>
+
 {% endblock %}

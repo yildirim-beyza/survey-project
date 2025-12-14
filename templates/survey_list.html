@@ -4,72 +4,280 @@
 
 {% block content %}
 <div class="main-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="page-title mb-1">Mevcut Anketler</h2>
-            <p class="page-subtitle mb-0">
-                Anketleri buradan görüntüleyebilir, soruları yönetebilir ve sonuçları inceleyebilirsiniz.
-            </p>
-        </div>
-        <a href="{{ url_for('create_survey') }}" class="btn btn-primary btn-lg rounded-pill">
-            + Yeni Anket Oluştur
-        </a>
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="page-title mb-1">Mevcut Anketler</h2>
+      <p class="page-subtitle mb-0">Anketleri yönet, linkini paylaş, sonuçları incele.</p>
     </div>
 
-    {% if surveys %}
-        {% for s in surveys %}
-            <div class="card card-survey mb-3">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-1">{{ s.title }}</h5>
-                        {% if s.description %}
-                            <div class="text-muted-sm mb-1">
-                                {{ s.description[:100] }}{% if s.description|length > 100 %}...{% endif %}
-                            </div>
-                        {% endif %}
-                        <div class="text-muted-sm">
-                            Oluşturma tarihi: {{ s.created_at }}
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <a href="{{ url_for('manage_questions', survey_id=s.id) }}"
-                           class="btn btn-sm btn-secondary rounded-pill mb-1">
-                            Soruları Yönet
-                        </a>
-                        <a href="{{ url_for('take_survey', survey_id=s.id) }}"
-                           class="btn btn-sm btn-success rounded-pill mb-1 ml-1">
-                            Anketi Doldur
-                        </a>
-                        <a href="{{ url_for('show_results', survey_id=s.id) }}"
-                           class="btn btn-sm btn-info rounded-pill mb-1 ml-1">
-                            Sonuçlar
-                        </a>
-                        <a href="{{ url_for('edit_survey', survey_id=s.id) }}"
-                           class="btn btn-sm btn-outline-dark rounded-pill mb-1 ml-1">
-                            Düzenle
-                        </a>
+    <!-- SAĞ BUTON GRUBU -->
+    <div class="d-flex align-items-center" style="gap:10px;">
+      <a href="{{ url_for('create_survey') }}" class="btn btn-primary rounded-pill px-4">
+        + Anket Oluştur
+      </a>
+      <a href="{{ url_for('analytics') }}" class="btn btn-outline-secondary rounded-pill px-4">
+        İstatistikler
+      </a>
+    </div>
+  </div>
 
-                        <!-- ANKETİ SİL BUTONU -->
-                        <form action="{{ url_for('delete_survey', survey_id=s.id) }}"
-                              method="post"
-                              style="display:inline;"
-                              onsubmit="return confirm('Bu anketi silmek istediğine emin misin?');">
-                            <button type="submit"
-                                    class="btn btn-sm btn-outline-danger rounded-pill mb-1 ml-1">
-                                Sil
-                            </button>
-                        </form>
-                    </div>
+    <!-- Stats -->
+  <div class="dash-stats mb-4">
+    <div class="dash-stat">
+      <div class="dash-stat-label">Toplam Anket</div>
+      <div class="dash-stat-value">
+        {{ surveys|length if surveys else 0 }}
+      </div>
+    </div>
+
+    <div class="dash-stat">
+      <div class="dash-stat-label">Toplam Soru</div>
+      <div class="dash-stat-value">
+        {{ total_questions }}
+      </div>
+    </div>
+
+    <div class="dash-stat">
+      <div class="dash-stat-label">Toplam Katılımcı</div>
+      <div class="dash-stat-value">
+        {{ total_responses }}
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Toolbar -->
+  <div class="dash-toolbar mb-3">
+    <div class="dash-search">
+      <input id="surveySearch" type="text" class="form-control" placeholder="Anket ara (başlık / açıklama)…">
+    </div>
+
+    <div class="dash-actions">
+      <select id="surveySort" class="form-control dash-select">
+        <option value="newest" selected>Yeni → Eski</option>
+        <option value="oldest">Eski → Yeni</option>
+        <option value="responses_desc">Katılımcı çok → az</option>
+        <option value="questions_desc">Soru çok → az</option>
+        <option value="title_asc">Başlık A → Z</option>
+      </select>
+    </div>
+  </div>
+
+  <br>
+
+  {% if surveys %}
+    <div id="surveyGrid" class="survey-grid">
+      {% for s in surveys %}
+        {% set qc = (s.question_count or 0) %}
+        {% set rc = (s.response_count or 0) %}
+
+        <div class="card card-survey survey-item"
+             data-title="{{ (s.title or '')|lower }}"
+             data-desc="{{ (s.description or '')|lower }}"
+             data-created="{{ s.created_at }}"
+             data-qc="{{ qc }}"
+             data-rc="{{ rc }}">
+
+          <div class="card-body survey-card-body">
+            <!-- Top row -->
+            <div class="survey-top">
+              <div class="survey-title-wrap">
+                <h5 class="survey-title mb-1">{{ s.title }}</h5>
+
+                <div class="survey-badges">
+                  {% if qc == 0 %}
+                    <span class="badge badge-soft badge-draft">Taslak</span>
+                  {% else %}
+                    <span class="badge badge-soft badge-live">Yayında</span>
+                  {% endif %}
+                  {% if rc > 0 %}
+                    <span class="badge badge-soft badge-hasresp">Yanıt var</span>
+                  {% endif %}
                 </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="survey-actions">
+                <a href="{{ url_for('manage_questions', survey_id=s.id) }}"
+                   class="btn btn-sm btn-primary rounded-pill">
+                  Soruları Yönet
+                </a>
+
+                <a href="{{ url_for('edit_survey', survey_id=s.id) }}"
+                   class="btn btn-sm btn-outline-dark rounded-pill ml-1">
+                  Düzenle
+                </a>
+
+                <div class="survey-more ml-1">
+                  <button type="button" class="more-btn" aria-label="Daha fazla">⋯</button>
+
+                  <div class="more-menu">
+                    <button type="button"
+                            class="more-item copy-link-btn"
+                            data-link="{{ request.host_url }}surveys/{{ s.id }}/take">
+                      Anket Linki
+                    </button>
+
+                    <a class="more-item" href="{{ url_for('take_survey', survey_id=s.id) }}">
+                      Anketi Doldur
+                    </a>
+
+                    <div class="more-divider"></div>
+
+                    <form action="{{ url_for('delete_survey', survey_id=s.id) }}"
+                          method="post"
+                          onsubmit="return confirm('Bu anketi silmek istediğine emin misin?');">
+                      <button type="submit" class="more-item danger">Sil</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
             </div>
-        {% endfor %}
-    {% else %}
-        <div class="text-center py-5">
-            <p class="mb-2">Henüz hiç anket oluşturulmamış.</p>
-            <a href="{{ url_for('create_survey') }}" class="btn btn-primary rounded-pill">
-                İlk anketi oluştur
-            </a>
+
+            <!-- Description -->
+            {% if s.description %}
+              <div class="survey-desc">
+                {{ s.description }}
+              </div>
+            {% endif %}
+
+            <!-- Meta -->
+            <div class="survey-meta">
+              <div class="meta-pill">🧾 {{ qc }} soru</div>
+              <div class="meta-pill">👤 {{ rc }} katılımcı</div>
+              <div class="meta-pill">📅 {{ s.created_date or '-' }}</div>
+              <div class="meta-pill">⏱️ {% if s.avg_duration_min is not none %}{{ s.avg_duration_min }} dk ort. süre{% else %}-{% endif %}</div>
+            </div>
+          </div>
         </div>
-    {% endif %}
+      {% endfor %}
+    </div>
+
+    <div id="noResults" class="text-center py-5" style="display:none;">
+      <p class="mb-2">Aramana uygun anket bulunamadı.</p>
+    </div>
+
+  {% else %}
+    <div class="text-center py-5">
+      <p class="mb-2">Henüz hiç anket oluşturulmamış.</p>
+      <a href="{{ url_for('create_survey') }}" class="btn btn-primary rounded-pill">
+        İlk anketi oluştur
+      </a>
+    </div>
+  {% endif %}
 </div>
+
+<div id="toast" class="toast">Link kopyalandı ✅</div>
+
+<script>
+(function () {
+  // --- More menu toggle ---
+  document.addEventListener("click", function (e) {
+    const more = e.target.closest(".survey-more");
+    document.querySelectorAll(".survey-more.open").forEach(x => {
+      if (!more || x !== more) x.classList.remove("open");
+    });
+    if (more && e.target.closest(".more-btn")) {
+      more.classList.toggle("open");
+    }
+    if (!more) {
+      document.querySelectorAll(".survey-more.open").forEach(x => x.classList.remove("open"));
+    }
+  });
+
+  // --- Search + sort (client-side) ---
+  const searchEl = document.getElementById("surveySearch");
+  const sortEl = document.getElementById("surveySort");
+  const grid = document.getElementById("surveyGrid");
+  const noResults = document.getElementById("noResults");
+
+  if (!grid) return;
+
+  function getItems() {
+    return Array.from(grid.querySelectorAll(".survey-item"));
+  }
+
+  function applyFilter() {
+    const q = (searchEl.value || "").trim().toLowerCase();
+    let visible = 0;
+
+    getItems().forEach(item => {
+      const t = item.dataset.title || "";
+      const d = item.dataset.desc || "";
+      const ok = !q || t.includes(q) || d.includes(q);
+      item.style.display = ok ? "" : "none";
+      if (ok) visible++;
+    });
+
+    if (noResults) noResults.style.display = visible === 0 ? "" : "none";
+  }
+
+  function applySort() {
+    const mode = sortEl.value;
+    const items = getItems();
+
+    items.sort((a, b) => {
+      const aCreated = a.dataset.created || "";
+      const bCreated = b.dataset.created || "";
+      const aQC = parseInt(a.dataset.qc || "0", 10);
+      const bQC = parseInt(b.dataset.qc || "0", 10);
+      const aRC = parseInt(a.dataset.rc || "0", 10);
+      const bRC = parseInt(b.dataset.rc || "0", 10);
+      const aTitle = a.dataset.title || "";
+      const bTitle = b.dataset.title || "";
+
+      if (mode === "newest") return (bCreated > aCreated) ? 1 : -1;
+      if (mode === "oldest") return (aCreated > bCreated) ? 1 : -1;
+      if (mode === "responses_desc") return bRC - aRC;
+      if (mode === "questions_desc") return bQC - aQC;
+      if (mode === "title_asc") return aTitle.localeCompare(bTitle, "tr");
+      return 0;
+    });
+
+    items.forEach(it => grid.appendChild(it));
+  }
+
+  if (searchEl) searchEl.addEventListener("input", applyFilter);
+  if (sortEl) sortEl.addEventListener("change", function () {
+    applySort();
+    applyFilter();
+  });
+
+  applySort();
+  applyFilter();
+})();
+</script>
+
+<script>
+document.addEventListener("click", async function(e){
+  const btn = e.target.closest(".copy-link-btn");
+  if (!btn) return;
+
+  const link = btn.dataset.link;
+  if (!link) return;
+
+  const toast = document.getElementById("toast");
+
+  try{
+    await navigator.clipboard.writeText(link);
+  }catch(err){
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = link;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+
+  toast.classList.add("show");
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 1200);
+});
+</script>
+
 {% endblock %}
